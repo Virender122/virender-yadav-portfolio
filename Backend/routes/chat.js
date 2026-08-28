@@ -4,9 +4,7 @@ const router = express.Router();
 const askAI = require("../services/ai");
 
 router.post("/chat", async (req, res) => {
-
     try {
-
         const { message } = req.body;
 
         if (!message) {
@@ -15,23 +13,20 @@ router.post("/chat", async (req, res) => {
             });
         }
 
-        // Tell browser we're sending streaming data
+        // Streaming headers
         res.setHeader("Content-Type", "text/plain; charset=utf-8");
-        res.setHeader("Transfer-Encoding", "chunked");
         res.setHeader("Cache-Control", "no-cache");
         res.setHeader("Connection", "keep-alive");
 
         await askAI(message, (chunk) => {
+            console.log("SENDING CHUNK:", chunk);
 
-            // Send chunk immediately
             res.write(chunk);
-
         });
 
         res.end();
 
     } catch (error) {
-
         console.error("Error in /chat route:", error);
 
         if (!res.headersSent) {

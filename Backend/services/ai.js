@@ -7,7 +7,7 @@ const groq = new Groq({
     apiKey: process.env.GROQ_API_KEY
 });
 
-const askAI = async (question) => {
+const askAI = async (question, onChunk) => {
     try {
         const prompt = `
 You are Virender Yadav's portfolio assistant.
@@ -27,18 +27,26 @@ ${resume}
 VISITOR QUESTION:
 ${question}
 `;
-
-        const response = await groq.chat.completions.create({
+        const stream = await groq.chat.completions.create({
             model: "openai/gpt-oss-20b",
             messages: [
                 {
                     role: "user",
                     content: prompt
                 }
-            ]
+            ],
+            stream: true
         });
 
-        return response.choices[0].message.content;
+        for await (const chunk of stream) {
+            const text = chunk.choices[0]?.delta?.content || "";
+
+            if (text) {
+                console.log("CHUNK:", text);
+
+                onChunk(text);
+            }
+        }
 
     } catch (error) {
         console.error("Groq Error:", error);
