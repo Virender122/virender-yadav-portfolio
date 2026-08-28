@@ -1,9 +1,10 @@
 require("dotenv").config();
-const { GoogleGenAI } = require("@google/genai");
+
+const Groq = require("groq-sdk");
 const resume = require("../data/resume");
 
-const ai = new GoogleGenAI({
-    apiKey: process.env.GEMINI_API_KEY
+const groq = new Groq({
+    apiKey: process.env.GROQ_API_KEY
 });
 
 const askAI = async (question) => {
@@ -25,19 +26,22 @@ ${resume}
 
 VISITOR QUESTION:
 ${question}
-
-ANSWER:
 `;
 
-        const response = await ai.models.generateContent({
-            model: "gemini-3.5-flash-lite",
-            contents: prompt
+        const response = await groq.chat.completions.create({
+            model: "llama-3.3-70b-versatile",
+            messages: [
+                {
+                    role: "user",
+                    content: prompt
+                }
+            ]
         });
 
-        return response.text;
+        return response.choices[0].message.content;
 
     } catch (error) {
-        console.error("Gemini Error:", error);
+        console.error("Groq Error:", error);
         throw error;
     }
 };
