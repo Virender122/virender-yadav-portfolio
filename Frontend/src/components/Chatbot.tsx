@@ -40,7 +40,9 @@ const Chatbot = () => {
 
     try {
         const res = await fetch(
-            "http://localhost:4000/api/chat",
+            // "http://localhost:4000/api/chat",
+            // "http://https://virender-yadav-portfolio-2.onrender.com/api/chat",
+            "https://virender-yadav-portfolio-2.onrender.com/api/chat",
             {
                 method: "POST",
                 headers: {
