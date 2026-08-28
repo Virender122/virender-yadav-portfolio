@@ -19,8 +19,6 @@ router.post("/chat", async (req, res) => {
         res.setHeader("Connection", "keep-alive");
 
         await askAI(message, (chunk) => {
-            console.log("SENDING CHUNK:", chunk);
-
             res.write(chunk);
         });
 

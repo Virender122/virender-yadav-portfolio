@@ -42,8 +42,6 @@ ${question}
             const text = chunk.choices[0]?.delta?.content || "";
 
             if (text) {
-                console.log("CHUNK:", text);
-
                 onChunk(text);
             }
         }

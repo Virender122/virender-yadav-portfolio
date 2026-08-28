@@ -108,11 +108,7 @@ const Chatbot = () => {
 
             return updatedMessages;
         });
-
         setAnswer(botAnswer);
-
-        console.log("AI response:", botAnswer);
-
     } catch (err) {
 
         console.log(err, "api call error");
