@@ -1,135 +1,12 @@
 import { useState } from "react";
-import axios from "axios";
+import { Mic, Volume2 } from "lucide-react";
+import { useChatbot } from "./ChatBoatLogic";
+import ReactMarkdown from "react-markdown";
+
 const Chatbot = () => {
     const [open, setOpen] = useState(false);
-    const [message, setMessage] = useState("");
-    const [messages, setMessages] = useState([
-        {
-            sender: "bot",
-            text: "Hi! 👋 I'm Virender's portfolio assistant. Ask me anything about his skills, projects or experience."
-        }
-    ]);
-    const [answer, setAnswer] = useState("");
+    const { message, setMessage, messages, setMessages, speakingIndex, loading, answer, isListening, handleSend, startListening, speakTextUser } = useChatbot();
 
-
-    const [loading, setLoading] = useState(false);
-
-   const handleSend = async (e) => {
-    e.preventDefault();
-
-    if (!message.trim() || loading) return;
-
-    const userMessage = message;
-
-    // Add user message + pending bot message
-    setMessages((prev) => [
-        ...prev,
-        {
-            sender: "user",
-            text: userMessage
-        },
-        {
-            sender: "bot",
-            text: "",
-            pending: true
-        }
-    ]);
-
-    setMessage("");
-    setLoading(true);
-
-    try {
-        const res = await fetch(
-            // "http://localhost:4000/api/chat",
-            // "http://https://virender-yadav-portfolio-2.onrender.com/api/chat",
-            "https://virender-yadav-portfolio-2.onrender.com/api/chat",
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    message: userMessage
-                })
-            }
-        );
-
-        if (!res.ok) {
-            throw new Error("API request failed");
-        }
-
-        // Get streaming reader
-        const reader = res.body.getReader();
-        const decoder = new TextDecoder();
-
-        let botAnswer = "";
-
-        // Remove loading dots as soon as first response arrives
-        let firstChunk = true;
-
-        while (true) {
-
-            const { value, done } = await reader.read();
-
-            if (done) break;
-
-            const chunk = decoder.decode(value, {
-                stream: true
-            });
-
-            botAnswer += chunk;
-
-            setMessages((prev) => {
-
-                const updatedMessages = [...prev];
-
-                updatedMessages[updatedMessages.length - 1] = {
-                    sender: "bot",
-                    text: botAnswer,
-                    pending: firstChunk && !botAnswer
-                };
-
-                return updatedMessages;
-            });
-
-            firstChunk = false;
-        }
-
-        // Final message
-        setMessages((prev) => {
-
-            const updatedMessages = [...prev];
-
-            updatedMessages[updatedMessages.length - 1] = {
-                sender: "bot",
-                text: botAnswer,
-                pending: false
-            };
-
-            return updatedMessages;
-        });
-        setAnswer(botAnswer);
-    } catch (err) {
-
-        console.log(err, "api call error");
-
-        setMessages((prev) => {
-
-            const updatedMessages = [...prev];
-
-            updatedMessages[updatedMessages.length - 1] = {
-                sender: "bot",
-                text: "Sorry, something went wrong. Please try again.",
-                pending: false
-            };
-
-            return updatedMessages;
-        });
-
-    } finally {
-        setLoading(false);
-    }
-};
     return (
         <>
             {!open && (
@@ -219,18 +96,11 @@ const Chatbot = () => {
 
                 </button>
             )}
-            {/* =====================================================
-            CHAT WINDOW
-            Only show when chat is OPEN
-        ====================================================== */}
 
             {open && (
                 <div className="fixed z-[9998] inset-3 h-[520px] top-26 sm:inset-auto sm:bottom-6 sm:right-6 sm:w-[420px] sm:h-[520px]
                     lg:w-[450px] lg:h-[560px] bg-white rounded-3xl border border-slate-200  shadow-[0_25px_80px_rgba(15,23,42,0.25)]
                     overflow-hidden flex flex-col animate-[chatOpen_0.25s_ease-out]">
-                    {/* =================================================
-                    HEADER
-                ================================================== */}
                     <div className="relative px-5 py-4 bg-gradient-to-br from-slate-950 via-blue-950 to-indigo-900 text-white overflow-hidden flex-shrink-0">
 
                         {/* Glow */}
@@ -404,37 +274,95 @@ const Chatbot = () => {
                                         key={index}
                                         className={`flex ${isUser ? "justify-end" : "justify-start"}`}
                                     >
-
                                         {/* Bot Avatar */}
-
                                         {!isUser && (
                                             <div className="flex-shrink-0 w-7 h-7 mr-2 mt-1 rounded-lg bg-gradient-to-br from-blue-500 to-violet-600 flex items-center justify-center text-xs text-white shadow-sm">
                                                 ✦
                                             </div>
                                         )}
 
-                                        {/* Message Bubble */}
+                                        {/* Bot message + speaker */}
+                                        <div className="flex flex-col items-end max-w-[78%]">
 
-                                     <div
-    className={`max-w-[78%] px-4 py-3 text-sm leading-relaxed ${
-        isUser
-            ? "bg-gradient-to-br from-blue-600 to-indigo-600 text-white rounded-2xl rounded-br-md shadow-md"
-            : "bg-white text-slate-700 border border-slate-200 rounded-2xl rounded-bl-md shadow-sm"
-    }`}
+                                            {/* Message Bubble */}
+                                            <div
+                                                className={`px-4 py-3 text-sm leading-relaxed ${isUser
+                                                    ? "bg-gradient-to-br from-blue-600 to-indigo-600 text-white rounded-2xl rounded-br-md shadow-md"
+                                                    : "bg-white text-slate-700 border border-slate-200 rounded-2xl rounded-bl-md shadow-sm"
+                                                    }`}
+                                            >
+                                                {item.pending ? (
+                                                    <div className="flex items-center gap-1.5 px-1 py-1">
+                                                        <span className="w-2 h-2 bg-blue-500 rounded-full animate-bounce shadow-[0_0_8px_rgba(59,130,246,0.9)]"></span>
+
+                                                        <span className="w-2 h-2 bg-blue-500 rounded-full animate-bounce [animation-delay:150ms] shadow-[0_0_8px_rgba(59,130,246,0.9)]"></span>
+
+                                                        <span className="w-2 h-2 bg-blue-500 rounded-full animate-bounce [animation-delay:300ms] shadow-[0_0_8px_rgba(59,130,246,0.9)]"></span>
+                                                    </div>
+                                                ) : (
+                                                    // <div className="prose prose-sm max-w-none">
+                                                    //     <ReactMarkdown>
+                                                    //         {item.text}
+                                                    //     </ReactMarkdown>
+                                                    // </div>
+
+                                                    <ReactMarkdown
+    components={{
+        ul: ({ children }) => (
+            <ul className="list-disc pl-5 space-y-1">
+                {children}
+            </ul>
+        ),
+
+        ol: ({ children }) => (
+            <ol className="list-decimal pl-5 space-y-1">
+                {children}
+            </ol>
+        ),
+
+        li: ({ children }) => (
+            <li className="leading-relaxed">
+                {children}
+            </li>
+        ),
+
+        strong: ({ children }) => (
+            <strong className="font-semibold text-slate-900">
+                {children}
+            </strong>
+        ),
+
+        p: ({ children }) => (
+            <p className="mb-2 last:mb-0">
+                {children}
+            </p>
+        ),
+    }}
 >
-    {item.pending ? (
-        <div className="flex items-center gap-1.5 px-1 py-1">
-            <span className="w-2 h-2 bg-blue-500 rounded-full animate-bounce shadow-[0_0_8px_rgba(59,130,246,0.9)]"></span>
+    {item.text}
+</ReactMarkdown>
+                                                )}
+                                            </div>
 
-            <span className="w-2 h-2 bg-blue-500 rounded-full animate-bounce [animation-delay:150ms] shadow-[0_0_8px_rgba(59,130,246,0.9)]"></span>
-
-            <span className="w-2 h-2 bg-blue-500 rounded-full animate-bounce [animation-delay:300ms] shadow-[0_0_8px_rgba(59,130,246,0.9)]"></span>
-        </div>
-    ) : (
-        item.text
-    )}
-</div>
-
+                                            {/* Speaker - below bubble, bottom right */}
+                                            {!isUser && item.text && !item.pending && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => speakTextUser(item.text, index)}
+                                                    className={`mt-1 mr-1 p-1.5 rounded-full transition-all duration-300 ${speakingIndex === index
+                                                            ? "bg-blue-500 text-white shadow-[0_0_12px_4px_rgba(59,130,246,0.4)] animate-pulse"
+                                                            : "text-slate-400 hover:text-blue-600 hover:bg-blue-50"
+                                                        }`}
+                                                    title={
+                                                        speakingIndex === index
+                                                            ? "Stop speaking"
+                                                            : "Listen to answer"
+                                                    }
+                                                >
+                                                    <Volume2 size={17} />
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
                                 );
 
@@ -464,7 +392,19 @@ const Chatbot = () => {
 
 
                             {/* Send */}
-
+                            <button
+                                type="button"
+                                onClick={startListening}
+                                className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300
+                                ${isListening
+                                        ? "bg-red-500 text-white shadow-[0_0_15px_5px_rgba(239,68,68,0.5)] animate-pulse"
+                                        : "text-gray-600 hover:bg-gray-100"
+                                    }
+                             `}
+                                title={isListening ? "Listening..." : "Voice input"}
+                            >
+                                <Mic size={21} />
+                            </button>
                             <button
                                 type="submit"
                                 disabled={!message.trim()}
